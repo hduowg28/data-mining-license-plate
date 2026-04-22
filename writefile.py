@@ -5,8 +5,9 @@ import os
 import cv2
 import pytesseract
 import re
+from paddleocr import PaddleOCR
 
-# ...existing code...
+# ocr = PaddleOCR(use_angle_cls=True, lang='en')
 
 def write_file(file_name, data, img_name, conf):
     with open(file_name, 'a', encoding='utf-8') as file:
@@ -59,51 +60,61 @@ def crop_and_process():
 
         if x2 <= x1 or y2 <= y1:
             continue
+
         plate = img[y1:y2, x1:x2]
+
+        plate = cv2.resize(plate, None, fx=2, fy=2)
+
+        gray = cv2.cvtColor(plate, cv2.COLOR_BGR2GRAY)
+
+        _, thresh = cv2.threshold(gray, 120, 255, cv2.THRESH_BINARY)
+
         save_name = os.path.join(output_folder, f"{img_name}_{index}.jpg")
-        cv2.imwrite(save_name, plate)
+        cv2.imwrite(save_name, thresh)
 
         print("Saved:", save_name)
-def ocr_from_plates():
-    folder = "plates test"
 
+
+def ocr_from_plates_tesOCR():
+    folder="plates test"
     for file in os.listdir(folder):
-        img_path = os.path.join(folder, file)
-
+        img_path=os.path.join(folder, file)
         img = cv2.imread(img_path)
+
         text = pytesseract.image_to_string(
-            img,
-            config="--oem 3 --psm 7 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+            img, 
+            config="--psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
         )
-        texts.append(text.strip())
-        final_text = "".join(texts)
-        final_text = re.sub(r"[^A-Z0-9]", "", final_text.upper())
+        text=text.strip()
+        print(file, "->", text)
 
-        if not final_text:
-            final_text = "None"
+# def ocr_from_plates_paddle():
+#     folder = "plates test"
 
-        print(f"{file} -> {final_text}")
-
-
-# def ocr_from_plates():
-#     folder="plates test"
 #     for file in os.listdir(folder):
-#         img_path=os.path.join(folder, file)
+#         img_path = os.path.join(folder, file)
 #         img = cv2.imread(img_path)
 
-#         text = pytesseract.image_to_string(
-#             img, 
-#             config="--psm 8 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-#         )
-#         text=text.strip()
+#         if img is None:
+#             continue
+
+#         result = ocr.ocr(img, cls=True)
+
+#         text = ""
+#         for line in result:
+#             for word in line:
+#                 text += word[1][0] + " "
+
+#         text = text.strip()
+
 #         print(file, "->", text)
 
-
-if __name__ == "__main__":
+if __name__ == "__main__": 
     # main()
     pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
     crop_and_process()
 
-    ocr_from_plates()
+    ocr_from_plates_tesOCR()
+    # ocr_from_plates_paddle()
     print("thanh cong")
 
