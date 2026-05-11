@@ -88,33 +88,117 @@ def ocr_from_plates_tesOCR():
         text=text.strip()
         print(file, "->", text)
 
-# def ocr_from_plates_paddle():
-#     folder = "plates test"
+def video_ocr():
+    model = YOLO("C:/data mining/best.pt")
 
-#     for file in os.listdir(folder):
-#         img_path = os.path.join(folder, file)
-#         img = cv2.imread(img_path)
+    # video file
+    cap = cv2.VideoCapture("0512.mp4")
 
-#         if img is None:
-#             continue
+    # webcam:
+    # cap = cv2.VideoCapture(0)
 
-#         result = ocr.ocr(img, cls=True)
+    detected_plates = set()
 
-#         text = ""
-#         for line in result:
-#             for word in line:
-#                 text += word[1][0] + " "
+    while True:
+        ret, frame = cap.read()
 
-#         text = text.strip()
+        if not ret:
+            break
 
-#         print(file, "->", text)
+        results = model.predict(frame, verbose=False)
+
+        for result in results:
+
+            for box in result.boxes:
+
+                conf = float(box.conf[0])
+
+                # bỏ qua detect yếu
+                if conf < 0.5:
+                    continue
+
+                x1, y1, x2, y2 = map(int, box.xyxy[0])
+
+                h, w = frame.shape[:2]
+
+                x1, y1 = max(0, x1), max(0, y1)
+                x2, y2 = min(w, x2), min(h, y2)
+
+                if x2 <= x1 or y2 <= y1:
+                    continue
+
+                # crop biển số
+                plate = frame[y1:y2, x1:x2]
+
+                # resize cho OCR tốt hơn
+                plate = cv2.resize(plate, None, fx=2, fy=2)
+
+                # grayscale
+                gray = cv2.cvtColor(plate, cv2.COLOR_BGR2GRAY)
+
+                # threshold
+                _, thresh = cv2.threshold(
+                    gray,
+                    120,
+                    255,
+                    cv2.THRESH_BINARY
+                )
+
+                # OCR
+                text = pytesseract.image_to_string(
+                    thresh,
+                    config="--psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+                )
+
+                # làm sạch text
+                text = re.sub(r'[^A-Z0-9]', '', text)
+
+                # tránh text rỗng
+                if len(text) < 5:
+                    continue
+
+                # tránh spam cùng biển số
+                if text not in detected_plates:
+                    print("Detected:", text)
+
+                    detected_plates.add(text)
+
+                # vẽ bounding box
+                cv2.rectangle(
+                    frame,
+                    (x1, y1),
+                    (x2, y2),
+                    (0, 255, 0),
+                    2
+                )
+
+                # hiển thị text
+                cv2.putText(
+                    frame,
+                    text,
+                    (x1, y1 - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    1,
+                    (0, 255, 0),
+                    2
+                )
+
+        cv2.imshow("License Plate Detection", frame)
+
+        # nhấn q để thoát
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
 
 if __name__ == "__main__": 
     # main()
     pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-    crop_and_process()
+    # crop_and_process()
 
-    ocr_from_plates_tesOCR()
+    # ocr_from_plates_tesOCR()
+    video_ocr()
     # ocr_from_plates_paddle()
     print("thanh cong")
 
