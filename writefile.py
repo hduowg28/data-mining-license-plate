@@ -8,6 +8,10 @@ import re
 from paddleocr import PaddleOCR
 
 # ocr = PaddleOCR(use_angle_cls=True, lang='en')
+ocr = PaddleOCR(
+    use_angle_cls=True,
+    lang='en'
+)
 
 def write_file(file_name, data, img_name, conf):
     with open(file_name, 'a', encoding='utf-8') as file:
@@ -101,6 +105,10 @@ def video_ocr():
 
     while True:
         ret, frame = cap.read()
+        if not ret or frame is None:
+            print("Không đọc được frame")
+            break
+        frame = cv2.resize(frame, (640, 480))
 
         if not ret:
             break
@@ -145,10 +153,12 @@ def video_ocr():
                 )
 
                 # OCR
-                text = pytesseract.image_to_string(
-                    thresh,
-                    config="--psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-                )
+                result_ocr = ocr.ocr(thresh, cls=True)
+                text = ""
+                if result_ocr[0] is not None:
+                    for line in result_ocr:
+                        for word in line:
+                            text += word[1][0]
 
                 # làm sạch text
                 text = re.sub(r'[^A-Z0-9]', '', text)
