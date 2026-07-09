@@ -52,7 +52,7 @@ def check(filePath1, filePath2):
             wrong_list.append(f"{imgName},real:{realPlate}:WWRONG")
     return total, correct, wrong, notfound
 
-t, c, w, n = check("fileRealPlate.txt", "answerOCR.txt")
+t, c, w, n = check("fileRealPlate.txt", "results3.txt")
 print("total:",t)
 print("correct:",c)
 print("wrong:",w)
